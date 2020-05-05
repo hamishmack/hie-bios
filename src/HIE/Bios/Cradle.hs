@@ -418,7 +418,11 @@ getCabalWrapperTool (ghcPath, ghcArgs) wdir = do
 cabalAction :: FilePath -> Maybe String -> LoggingFunction -> FilePath -> IO (CradleLoadResult ComponentOptions)
 cabalAction work_dir mc l fp = do
   wrapper_fp <- getCabalWrapperTool ("ghc", []) work_dir
+  hieProjectFile <- doesFileExist (work_dir </> "hie.project")
   let cab_args = ["v2-repl", "--with-compiler", wrapper_fp, fromMaybe (fixTargetPath fp) mc]
+                  ++ if hieProjectFile
+                       then ["--project-file", "hie.project"]
+                       else []
   (ex, output, stde, args) <-
     readProcessWithOutputFile l Nothing work_dir "cabal" cab_args
   deps <- cabalCradleDependencies work_dir
