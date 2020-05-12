@@ -426,7 +426,7 @@ cabalAction work_dir mc l fp = do
   withCabalWrapperTool ("ghc", []) work_dir $ \wrapper_fp -> do
     let cab_args = ["v2-repl", "--with-compiler", wrapper_fp, fromMaybe (fixTargetPath fp) mc]
                     ++ if hieProjectFile
-                         then ["--project-file", "hie.project"]
+                         then ["--project-file", "hie.project", "--builddir", "dist-hie"]
                          else []
     (ex, output, stde, args) <-
       readProcessWithOutputFile l work_dir "cabal" cab_args
