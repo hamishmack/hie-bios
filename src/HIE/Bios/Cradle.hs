@@ -362,7 +362,7 @@ cabalCradle wdir mc =
 cabalCradleDependencies :: FilePath -> IO [FilePath]
 cabalCradleDependencies rootDir = do
     cabalFiles <- findCabalFiles rootDir
-    return $ cabalFiles ++ ["cabal.project", "cabal.project.local"]
+    return $ cabalFiles ++ ["cabal.project", "cabal.project.local", "hie.project", "hie.project.local"]
 
 findCabalFiles :: FilePath -> IO [FilePath]
 findCabalFiles wdir = do
@@ -426,7 +426,7 @@ cabalAction work_dir mc l fp = do
   withCabalWrapperTool ("ghc", []) work_dir $ \wrapper_fp -> do
     let cab_args = ["v2-repl", "--with-compiler", wrapper_fp, fromMaybe (fixTargetPath fp) mc]
                     ++ if hieProjectFile
-                         then ["--project-file", "hie.project", "--builddir", "dist-hie"]
+                         then ["--project-file", work_dir </> "hie.project", "--builddir", "dist-hie"]
                          else []
     (ex, output, stde, args) <-
       readProcessWithOutputFile l work_dir "cabal" cab_args
@@ -464,7 +464,7 @@ removeVerbosityOpts = filter ((&&) <$> (/= "-v0") <*> (/= "-w"))
 cabalWorkDir :: FilePath -> MaybeT IO FilePath
 cabalWorkDir = findFileUpwards isCabal
   where
-    isCabal name = name == "cabal.project"
+    isCabal name = name == "cabal.project" || name == "hie.project"
 
 ------------------------------------------------------------------------
 -- Stack Cradle
