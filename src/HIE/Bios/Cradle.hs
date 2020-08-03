@@ -419,7 +419,7 @@ cabalCradleDependencies rootDir componentDir = do
     let relFp = makeRelative rootDir componentDir
     cabalFiles' <- findCabalFiles componentDir
     let cabalFiles = map (relFp </>) cabalFiles'
-    return $ map normalise $ cabalFiles ++ ["cabal.project", "cabal.project.local"]
+    return $ map normalise $ cabalFiles ++ ["cabal.project", "cabal.project.local", "hie.project", "hie.project.local"]
 
 -- |Find .cabal files in the given directory.
 --
@@ -483,8 +483,12 @@ withCabalWrapperTool (ghcPath, ghcArgs) wdir k = do
 
 cabalAction :: FilePath -> Maybe String -> LoggingFunction -> FilePath -> IO (CradleLoadResult ComponentOptions)
 cabalAction work_dir mc l fp = do
+  hieProjectFile <- doesFileExist (work_dir </> "hie.project")
   withCabalWrapperTool ("ghc", []) work_dir $ \wrapper_fp -> do
     let cab_args = ["v2-repl", "--with-compiler", wrapper_fp, fromMaybe (fixTargetPath fp) mc]
+                    ++ if hieProjectFile
+                         then ["--project-file", work_dir </> "hie.project", "--builddir", "dist-hie"]
+                         else []
     (ex, output, stde, args) <-
       readProcessWithOutputFile l work_dir (proc "cabal" cab_args)
     case processCabalWrapperArgs args of
@@ -546,8 +550,10 @@ removeVerbosityOpts = filter ((&&) <$> (/= "-v0") <*> (/= "-w"))
 
 cabalWorkDir :: FilePath -> MaybeT IO FilePath
 cabalWorkDir wdir =
-      findFileUpwards (== "cabal.project") wdir
-  <|> findFileUpwards (\fp -> takeExtension fp == ".cabal") wdir
+        findFileUpwards isCabal wdir
+    <|> findFileUpwards (\fp -> takeExtension fp == ".cabal") wdir
+  where
+    isCabal name = name == "cabal.project" || name == "hie.project"
 
 ------------------------------------------------------------------------
 -- | Stack Cradle
